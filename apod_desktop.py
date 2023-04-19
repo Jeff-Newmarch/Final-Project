@@ -41,8 +41,7 @@ def main():
 
     # Add the APOD for the specified date to the cache
     apod_id = add_apod_to_cache(apod_date)
-    if apod_id == 0:
-        return
+
 
     # Get the information for the APOD from the DB
     apod_info = get_apod_info(apod_id)
@@ -128,7 +127,7 @@ def init_apod_cache(parent_dir):
         conn = sqlite3.connect(image_cache_db)
         cur = conn.cursor()
         apod_info_query = """
-            CREATE TABLE IF NOT EXISTS image_database
+            CREATE TABLE IF NOT EXISTS image_cache
             (
                 id              INTEGER PRIMARY KEY,
                 title           TEXT NOT NULL,
@@ -173,22 +172,27 @@ def add_apod_to_cache(apod_date):
         return
     
     # Save the APOD file to the image cache directory
+    image_title = apod_info['title']
+    image_path = determine_apod_file_path(image_title, image_url)
+    file_ext = image_url.split('.')[-1]
+    image_path = os.path.join(image_cache_dir, f'{image_title}.{file_ext}')
+    image_lib.save_image_file(image_bytes, image_path)
     
-    image_path = os.path.join(image_cache_dir)
-    if image_lib.save_image_file(image_bytes, image_path):
-        return image_path
     
     # Add the APOD information to the DB
     conn = sqlite3.connect(image_cache_db)
     cur = conn.cursor()
     apod_query_info = """
-        INSERT INTO image_database
+        INSERT INTO image_cache
         (
+            id
             
         )
     
     """
     
+    conn.commit()
+    conn.close()
 
     return 0
 
@@ -207,7 +211,7 @@ def add_apod_to_db(title, explanation, file_path, sha256):
     conn = sqlite3.connect(image_cache_db)
     cur = conn.cursor()
     apod_info_query = """
-        INSERT INTO image_database
+        INSERT INTO image_cache
         (
             title,
             explanation,
@@ -222,10 +226,9 @@ def add_apod_to_db(title, explanation, file_path, sha256):
     explanation = apod_info['explanation']
     file_path = os.path.join(image_cache_dir)
     sha256 = hashlib.sha256(apod_info['hdurl']).hexdigest()
-    conn = sqlite3.connect(image_cache_db)
-    cur = conn.cursor()
+    values = (title, explanation, file_path, sha256)
     
-    cur.execute(apod_info_query, title, explanation, file_path, sha256)
+    cur.execute(apod_info_query, values)
     conn.commit()
     conn.close()
     return 0
@@ -241,8 +244,15 @@ def get_apod_id_from_db(image_sha256):
     Returns:
         int: Record ID of the APOD in the image cache DB, if it exists. Zero, if it does not.
     """
-    # TODO: Complete function body
+    
     apod_info = apod_api.get_apod_info()
+    image_sha256 = hashlib.sha256(apod_info['hdurl']).hexdigest()
+    if image_sha256 == image_cache_db['sha256']:
+        print(f'APOD SHA-256: {image_sha256}')
+        print('APOD image already exists')
+        return image_cache_db['id']
+    else:
+        print(f'APOD SHA-256: {image_sha256}')
 
     return 0
 
@@ -271,8 +281,8 @@ def determine_apod_file_path(image_title, image_url):
     Returns:
         str: Full path at which the APOD image file must be saved in the image cache directory
     """
-    
-    apod_info = apod_api.get_apod_info()
+    apod_date = get_apod_date()
+    apod_info = apod_api.get_apod_info(apod_date)
     image_url = apod_info['hdurl']
     image_title = apod_info['title']
     file_ext = image_url.split('.')[-1]
@@ -294,7 +304,7 @@ def get_apod_info(image_id):
     conn = sqlite3.connect(image_cache_db)
     cur = conn.cursor()
     query_params = """
-        SELECT id, title, explanation, full_path FROM image_database;
+        SELECT id, title, explanation, full_path FROM image_cache;
     """
     cur.execute(query_params)
     query = cur.fetchall()
@@ -320,7 +330,7 @@ def get_all_apod_titles():
         apod_title_list = [t['title'] for t in apod_dict]
         return apod_title_list
 
-    # NOTE: This function is only needed to support the APOD viewer GUI
+    # This function is only needed to support the APOD viewer GUI
     return
 
 if __name__ == '__main__':

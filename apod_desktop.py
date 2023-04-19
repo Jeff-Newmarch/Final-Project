@@ -22,7 +22,7 @@ import apod_api
 import hashlib
 NASA_API_URL = 'https://api.nasa.gov/planetary/apod'
 NASA_API_KEY = 'eoUZeSrhO562HTqLJZYFiGrcQt6QDFV5BvY2wp5h'
-PICTURE_OF_THE_DAY = 'https://apod.nasa.gov/apod/image/2303/MayanMilkyWay_Fernandez_1600.jpg'
+
 
 # Global variables
 image_cache_dir = None  # Full path of image cache directory
@@ -69,7 +69,7 @@ def get_apod_date():
                 if apod_date > date.today():
                     print('Error: APOD date cannot be in the future')
                     exit()
-                elif apod_date < date.fromisoformat('1995-06-16'):
+                if apod_date < date.fromisoformat('1995-06-16'):
                     print('No data from before this date')
                     exit()
         else:
@@ -77,8 +77,8 @@ def get_apod_date():
                 exit()
     else:
         apod_date = date.today()
-
-
+    
+    
 
     
     return apod_date

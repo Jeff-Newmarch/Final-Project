@@ -185,11 +185,11 @@ def add_apod_to_cache(apod_date):
     apod_query_info = """
         INSERT INTO image_cache
         (
-            id
-            
+            id  
         )
-    
+        VALUES(?);
     """
+
     
     conn.commit()
     conn.close()
@@ -306,9 +306,12 @@ def get_apod_info(image_id):
     query_params = """
         SELECT id, title, explanation, full_path FROM image_cache;
     """
+    
     cur.execute(query_params)
     query = cur.fetchall()
+    
     conn.close()
+    
     # Put information into a dictionary
     apod_info = {
         'title': query, 
